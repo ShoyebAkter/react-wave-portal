@@ -1,5 +1,8 @@
 import React,{useEffect, useState} from "react";
 import './App.css';
+import { ethers } from "ethers";
+import abi from "./utils/WavePortal.json"
+
 const getEthereumObject=()=>window.ethereum;
 
 const findMetamaskAccount=async()=>{
@@ -30,11 +33,21 @@ const findMetamaskAccount=async()=>{
 export default function App() {
 
   const [currentAccount, setCurrentAccount] = useState("");
-
-  /*
-   * The passed callback function will be run when the page loads.
-   * More technically, when the App component "mounts".
-   */
+  const contractAddress="0x2f87af686031bb4fb75227b4757204940524d027"
+  const contractABI=abi.abi;
+  const connectWallet=async()=>{
+    try{
+      const ethereum=await getEthereumObject();
+      const account=await ethereum.request({ method: "eth_requestAccounts"});
+      if(!ethereum){
+        alert("Get metamask");
+      }
+      console.log("My account is",account[0])
+      setCurrentAccount(account[0])
+    }catch(error){
+      console.log(error)
+    }
+  }
   useEffect(()=>{
     const fetchAccount= async() => {
       const account = await findMetamaskAccount();
@@ -46,8 +59,31 @@ export default function App() {
     fetchAccount()
   }, []);
   
-  const wave = () => {
-    
+  const wave =async () => {
+    try{
+      const {ethereum}=window;
+      
+      if(ethereum){
+        const provider=new ethers.providers.Web3Provider(ethereum);
+        const signer=provider.getSigner();
+        const wavePortalContract=new ethers.Contract(contractAddress,contractABI,signer);
+        console.log(provider,signer,wavePortalContract);
+        let count=await wavePortalContract.getTotalWaves();
+        console.log("Total wave count...",count.toNumber());
+
+        const waveTxn=await wavePortalContract.wave();
+        console.log("Mining..",waveTxn.hash);
+
+        await waveTxn.wait();
+        console.log("Mining..",waveTxn.hash);
+        count=await wavePortalContract.getTotalWaves();
+        console.log("Retrieved total wave count...",count.toNumber());
+      }else{
+        console.log("Ethereum object doesn't exist");
+      }
+    }catch(error){
+      console.log(error);
+    }
   }
   
   return (  
@@ -65,6 +101,11 @@ export default function App() {
         <button className="waveButton" onClick={wave}>
           Wave at Me
         </button>
+        {!currentAccount && (
+          <button className="waveButton" onClick={connectWallet}>
+            Connect Wallet
+          </button>
+        )}
       </div>
     </div>
   );
