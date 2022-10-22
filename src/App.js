@@ -35,6 +35,30 @@ export default function App() {
   const [currentAccount, setCurrentAccount] = useState("");
   const contractAddress="0x2f87af686031bb4fb75227b4757204940524d027"
   const contractABI=abi.abi;
+  const checkIfWalletIsConnected = async () => {
+    try {
+      const { ethereum } = window;
+
+      if (!ethereum) {
+        console.log("Make sure you have metamask!");
+        return;
+      } else {
+        console.log("We have the ethereum object", ethereum);
+      }
+
+      const accounts = await ethereum.request({ method: 'eth_accounts' });
+
+      if (accounts.length !== 0) {
+        const account = accounts[0];
+        console.log("Found an authorized account:", account);
+        setCurrentAccount(account)
+      } else {
+        console.log("No authorized account found")
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
   const connectWallet=async()=>{
     try{
       const ethereum=await getEthereumObject();
@@ -49,14 +73,15 @@ export default function App() {
     }
   }
   useEffect(()=>{
-    const fetchAccount= async() => {
-      const account = await findMetamaskAccount();
-      if (account !== null) {
-        setCurrentAccount(account);
-      }
-      console.log(account);
-    }
-    fetchAccount()
+    // const fetchAccount= async() => {
+    //   const account = await findMetamaskAccount();
+    //   if (account !== null) {
+    //     setCurrentAccount(account);
+    //   }
+    //   console.log(account);
+    // }
+    // fetchAccount()
+    checkIfWalletIsConnected();
   }, []);
   
   const wave =async () => {
@@ -76,7 +101,7 @@ export default function App() {
         await waveTxn.wait();
         console.log("Mining..",waveTxn.hash);
         let count=await wavePortalContract.getTotalWaves();
-        console.log("Total wave count...",count.toNumber());
+        console.log("Total wave count...",count);
         count=await wavePortalContract.getTotalWaves();
         console.log("Retrieved total wave count...",count.toNumber());
       }else{
@@ -86,6 +111,7 @@ export default function App() {
       console.log(error);
     }
   }
+  
   
   return (  
     <div className="mainContainer">
